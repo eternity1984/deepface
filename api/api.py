@@ -7,6 +7,15 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 #------------------------------
 
 from flask import Flask, jsonify, request, make_response
+try:
+    from flask_cors import CORS  # The typical way to import flask-cors
+except ImportError:
+    # Path hack allows examples to be run without installation.
+    import os
+    parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.sys.path.insert(0, parentdir)
+
+    from flask_cors import CORS
 
 import argparse
 import uuid
@@ -33,6 +42,13 @@ from deepface import DeepFace
 
 app = Flask(__name__)
 
+
+# Set CORS options on app configuration
+app.config['CORS_HEADERS'] = 'application/json'
+# app.config['CORS_RESOURCES'] = {r"/api/*": {"origins": "*"}}
+
+cors = CORS(app)
+
 #------------------------------
 
 if tf_version == 1:
@@ -43,7 +59,7 @@ if tf_version == 1:
 
 @app.route('/')
 def index():
-	return '<h1>Hello, world!</h1>'
+	return jsonify({'status': "OK"}), 200
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
@@ -286,4 +302,4 @@ if __name__ == '__main__':
 		default=5000,
 		help='Port of serving api')
 	args = parser.parse_args()
-	app.run(host='0.0.0.0', port=args.port)
+	app.run(host='0.0.0.0', port=args.port, threaded=True)
