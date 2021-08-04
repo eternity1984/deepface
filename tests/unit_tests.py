@@ -170,7 +170,6 @@ dataset = [
 	['dataset/img5.jpg', 'dataset/img6.jpg', True],
 	['dataset/img6.jpg', 'dataset/img7.jpg', True],
 	['dataset/img8.jpg', 'dataset/img9.jpg', True],
-
 	['dataset/img1.jpg', 'dataset/img11.jpg', True],
 	['dataset/img2.jpg', 'dataset/img11.jpg', True],
 
@@ -182,7 +181,7 @@ dataset = [
 
 #models = ['VGG-Face', 'Facenet', 'OpenFace', 'DeepFace', 'DeepID', 'Dlib', 'ArcFace']
 metrics = ['cosine', 'euclidean', 'euclidean_l2']
-models = ['VGG-Face', 'Facenet', 'Dlib', 'ArcFace'] #those are robust models
+models = ['VGG-Face', 'Facenet', 'Facenet512', 'Dlib', 'ArcFace'] #those are robust models
 #metrics = ['cosine']
 
 passed_tests = 0; test_cases = 0

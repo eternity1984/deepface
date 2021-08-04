@@ -12,7 +12,7 @@ import pandas as pd
 from tqdm import tqdm
 import pickle
 
-from deepface.basemodels import VGGFace, OpenFace, Facenet, FbDeepFace, DeepID, DlibWrapper, ArcFace, Boosting
+from deepface.basemodels import VGGFace, OpenFace, Facenet, Facenet512, FbDeepFace, DeepID, DlibWrapper, ArcFace, Boosting
 from deepface.extendedmodels import Age, Gender, Race, Emotion
 from deepface.commons import functions, realtime, distance as dst
 
@@ -41,6 +41,7 @@ def build_model(model_name):
 		'VGG-Face': VGGFace.loadModel,
 		'OpenFace': OpenFace.loadModel,
 		'Facenet': Facenet.loadModel,
+		'Facenet512': Facenet512.loadModel,
 		'DeepFace': FbDeepFace.loadModel,
 		'DeepID': DeepID.loadModel,
 		'Dlib': DlibWrapper.loadModel,
@@ -65,7 +66,7 @@ def build_model(model_name):
 
 	return model_obj[model_name]
 
-def verify(img1_path, img2_path = '', model_name = 'VGG-Face', distance_metric = 'cosine', model = None, enforce_detection = True, detector_backend = 'opencv', align = True):
+def verify(img1_path, img2_path = '', model_name = 'VGG-Face', distance_metric = 'cosine', model = None, enforce_detection = True, detector_backend = 'opencv', align = True, prog_bar = True, normalization = 'base'):
 
 	"""
 	This function verifies an image pair is same person or different persons.
@@ -89,6 +90,8 @@ def verify(img1_path, img2_path = '', model_name = 'VGG-Face', distance_metric =
 		enforce_detection (boolean): If any face could not be detected in an image, then verify function will return exception. Set this to False not to have this exception. This might be convenient for low resolution images.
 
 		detector_backend (string): set face detector backend as retinaface, mtcnn, opencv, ssd or dlib
+
+		prog_bar (boolean): enable/disable a progress bar
 
 	Returns:
 		Verify function returns a dictionary. If img1_path is a list of image pairs, then the function will return list of dictionary.
@@ -138,8 +141,7 @@ def verify(img1_path, img2_path = '', model_name = 'VGG-Face', distance_metric =
 
 	#------------------------------
 
-	#calling deepface in a for loop causes lots of progress bars. this prevents it.
-	disable_option = False if len(img_list) > 1 else True
+	disable_option = (False if len(img_list) > 1 else True) or not prog_bar
 
 	pbar = tqdm(range(0,len(img_list)), desc='Verification', disable = disable_option)
 
@@ -159,12 +161,16 @@ def verify(img1_path, img2_path = '', model_name = 'VGG-Face', distance_metric =
 				img1_representation = represent(img_path = img1_path
 						, model_name = model_name, model = custom_model
 						, enforce_detection = enforce_detection, detector_backend = detector_backend
-						, align = align)
+						, align = align
+						, normalization = normalization
+						)
 
 				img2_representation = represent(img_path = img2_path
 						, model_name = model_name, model = custom_model
 						, enforce_detection = enforce_detection, detector_backend = detector_backend
-						, align = align)
+						, align = align
+						, normalization = normalization
+						)
 
 				#----------------------
 				#find distances between embeddings
@@ -258,7 +264,7 @@ def verify(img1_path, img2_path = '', model_name = 'VGG-Face', distance_metric =
 
 		return resp_obj
 
-def analyze(img_path, actions = ['emotion', 'age', 'gender', 'race'] , models = {}, enforce_detection = True, detector_backend = 'opencv'):
+def analyze(img_path, actions = ['emotion', 'age', 'gender', 'race'] , models = {}, enforce_detection = True, detector_backend = 'opencv', prog_bar = True):
 
 	"""
 	This function analyzes facial attributes including age, gender, emotion and race
@@ -279,6 +285,8 @@ def analyze(img_path, actions = ['emotion', 'age', 'gender', 'race'] , models = 
 		enforce_detection (boolean): The function throws exception if a face could not be detected. Set this to True if you don't want to get exception. This might be convenient for low resolution images.
 
 		detector_backend (string): set face detector backend as retinaface, mtcnn, opencv, ssd or dlib.
+
+		prog_bar (boolean): enable/disable a progress bar
 	Returns:
 		The function returns a dictionary. If img_path is a list, then it will return list of dictionary.
 
@@ -349,7 +357,7 @@ def analyze(img_path, actions = ['emotion', 'age', 'gender', 'race'] , models = 
 
 	resp_objects = []
 
-	disable_option = False if len(img_paths) > 1 else True
+	disable_option = (False if len(img_paths) > 1 else True) or not prog_bar
 
 	global_pbar = tqdm(range(0,len(img_paths)), desc='Analyzing', disable = disable_option)
 
@@ -358,7 +366,7 @@ def analyze(img_path, actions = ['emotion', 'age', 'gender', 'race'] , models = 
 
 		resp_obj = {}
 
-		disable_option = False if len(actions) > 1 else True
+		disable_option = (False if len(actions) > 1 else True) or not prog_bar
 
 		pbar = tqdm(range(0, len(actions)), desc='Finding actions', disable = disable_option)
 
@@ -454,7 +462,7 @@ def analyze(img_path, actions = ['emotion', 'age', 'gender', 'race'] , models = 
 
 		return resp_obj
 
-def find(img_path, db_path, model_name ='VGG-Face', distance_metric = 'cosine', model = None, enforce_detection = True, detector_backend = 'opencv', align = True):
+def find(img_path, db_path, model_name ='VGG-Face', distance_metric = 'cosine', model = None, enforce_detection = True, detector_backend = 'opencv', align = True, prog_bar = True, normalization = 'base'):
 
 	"""
 	This function applies verification several times and find an identity in a database
@@ -475,6 +483,8 @@ def find(img_path, db_path, model_name ='VGG-Face', distance_metric = 'cosine', 
 		enforce_detection (boolean): The function throws exception if a face could not be detected. Set this to True if you don't want to get exception. This might be convenient for low resolution images.
 
 		detector_backend (string): set face detector backend as retinaface, mtcnn, opencv, ssd or dlib
+
+		prog_bar (boolean): enable/disable a progress bar
 
 	Returns:
 		This function returns pandas data frame. If a list of images is passed to img_path, then it will return list of pandas data frame.
@@ -550,7 +560,7 @@ def find(img_path, db_path, model_name ='VGG-Face', distance_metric = 'cosine', 
 
 			representations = []
 
-			pbar = tqdm(range(0,len(employees)), desc='Finding representations')
+			pbar = tqdm(range(0,len(employees)), desc='Finding representations', disable = prog_bar)
 
 			#for employee in employees:
 			for index in pbar:
@@ -565,7 +575,9 @@ def find(img_path, db_path, model_name ='VGG-Face', distance_metric = 'cosine', 
 					representation = represent(img_path = employee
 						, model_name = model_name, model = custom_model
 						, enforce_detection = enforce_detection, detector_backend = detector_backend
-						, align = align)
+						, align = align
+						, normalization = normalization
+						)
 
 					instance.append(representation)
 
@@ -595,7 +607,7 @@ def find(img_path, db_path, model_name ='VGG-Face', distance_metric = 'cosine', 
 
 		resp_obj = []
 
-		global_pbar = tqdm(range(0,len(img_paths)), desc='Analyzing')
+		global_pbar = tqdm(range(0, len(img_paths)), desc='Analyzing', disable = prog_bar)
 		for j in global_pbar:
 			img_path = img_paths[j]
 
@@ -607,7 +619,9 @@ def find(img_path, db_path, model_name ='VGG-Face', distance_metric = 'cosine', 
 				target_representation = represent(img_path = img_path
 					, model_name = model_name, model = custom_model
 					, enforce_detection = enforce_detection, detector_backend = detector_backend
-					, align = align)
+					, align = align
+					, normalization = normalization
+					)
 
 				for k in metric_names:
 					distances = []
@@ -698,7 +712,7 @@ def find(img_path, db_path, model_name ='VGG-Face', distance_metric = 'cosine', 
 
 	return None
 
-def represent(img_path, model_name = 'VGG-Face', model = None, enforce_detection = True, detector_backend = 'opencv', align = True):
+def represent(img_path, model_name = 'VGG-Face', model = None, enforce_detection = True, detector_backend = 'opencv', align = True, normalization = 'base'):
 
 	"""
 	This function represents facial images as vectors.
@@ -716,6 +730,8 @@ def represent(img_path, model_name = 'VGG-Face', model = None, enforce_detection
 
 		detector_backend (string): set face detector backend as retinaface, mtcnn, opencv, ssd or dlib
 
+		normalization (string): normalize the input image before feeding to model
+
 	Returns:
 		Represent function returns a multidimensional vector. The number of dimensions is changing based on the reference model. E.g. FaceNet returns 128 dimensional vector; VGG-Face returns 2622 dimensional vector.
 	"""
@@ -726,7 +742,7 @@ def represent(img_path, model_name = 'VGG-Face', model = None, enforce_detection
 	#---------------------------------
 
 	#decide input shape
-	input_shape =  input_shape_x, input_shape_y= functions.find_input_shape(model)
+	input_shape_x, input_shape_y = functions.find_input_shape(model)
 
 	#detect and align
 	img = functions.preprocess_face(img = img_path
@@ -735,12 +751,19 @@ def represent(img_path, model_name = 'VGG-Face', model = None, enforce_detection
 		, detector_backend = detector_backend
 		, align = align)
 
+	#---------------------------------
+	#custom normalization
+
+	img = functions.normalize_input(img = img, normalization = normalization)
+
+	#---------------------------------
+
 	#represent
 	embedding = model.predict(img)[0].tolist()
 
 	return embedding
 
-def stream(db_path = '', model_name ='VGG-Face', distance_metric = 'cosine', enable_face_analysis = True, source = 0, time_threshold = 5, frame_threshold = 5):
+def stream(db_path = '', model_name ='VGG-Face', detector_backend = 'opencv', distance_metric = 'cosine', enable_face_analysis = True, source = 0, time_threshold = 5, frame_threshold = 5):
 
 	"""
 	This function applies real time face recognition and facial attribute analysis
@@ -749,6 +772,8 @@ def stream(db_path = '', model_name ='VGG-Face', distance_metric = 'cosine', ena
 		db_path (string): facial database path. You should store some .jpg files in this folder.
 
 		model_name (string): VGG-Face, Facenet, OpenFace, DeepFace, DeepID, Dlib or Ensemble
+
+		detector_backend (string): opencv, ssd, mtcnn, dlib, retinaface
 
 		distance_metric (string): cosine, euclidean, euclidean_l2
 
@@ -768,10 +793,10 @@ def stream(db_path = '', model_name ='VGG-Face', distance_metric = 'cosine', ena
 	if frame_threshold < 1:
 		raise ValueError("frame_threshold must be greater than the value 1 but you passed "+str(frame_threshold))
 
-	realtime.analysis(db_path, model_name, distance_metric, enable_face_analysis
+	realtime.analysis(db_path, model_name, detector_backend, distance_metric, enable_face_analysis
 						, source = source, time_threshold = time_threshold, frame_threshold = frame_threshold)
 
-def detectFace(img_path, detector_backend = 'opencv', enforce_detection = True):
+def detectFace(img_path, detector_backend = 'opencv', enforce_detection = True, align = True):
 
 	"""
 	This function applies pre-processing stages of a face recognition pipeline including detection and alignment
@@ -786,7 +811,7 @@ def detectFace(img_path, detector_backend = 'opencv', enforce_detection = True):
 	"""
 
 	img = functions.preprocess_face(img = img_path, detector_backend = detector_backend
-		, enforce_detection = enforce_detection)[0] #preprocess_face returns (1, 224, 224, 3)
+		, enforce_detection = enforce_detection, align = align)[0] #preprocess_face returns (1, 224, 224, 3)
 	return img[:, :, ::-1] #bgr to rgb
 
 #---------------------------
